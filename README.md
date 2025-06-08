@@ -166,9 +166,6 @@ The application uses:
 The GeoJSON files used in this project for country and US state boundaries are sourced from:
 
 - [OpenDataSoft World Administrative Boundaries dataset](https://public.opendatasoft.com/explore/dataset/world-administrative-boundaries/)
-
-The GeoJSON files used in this project for country and US state boundaries are sourced from:
-
 - [DataHub.io Country Polygons as GeoJSON](https://datahub.io/core/geo-countries)
 
 This data is originally derived from [Natural Earth](http://www.naturalearthdata.com/) and is licensed under the [Open Data Commons Public Domain Dedication and License v1.0](http://opendatacommons.org/licenses/pddl/).
