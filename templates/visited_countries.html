@@ -1,0 +1,361 @@
+{% extends "base.html" %}
+
+{% block title %}Travel Maps - Visited Countries{% endblock %}
+
+{% block head %}
+<style>
+    .map-container {
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        z-index: 1;
+        transition: right 0.3s ease;
+    }
+    .map-container.sidebar-visible {
+        right: 300px;
+    }
+    #map {
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        width: 100%;
+        height: 100%;
+    }
+    #sidebar {
+        position: absolute;
+        top: 0;
+        right: -300px;
+        width: 300px;
+        height: 100%;
+        overflow-y: auto;
+        background: white;
+        padding: 15px;
+        box-sizing: border-box;
+        box-shadow: -2px 0 4px rgba(0,0,0,0.1);
+        z-index: 2;
+        transition: right 0.3s ease;
+    }
+    #sidebar.visible {
+        right: 0;
+    }
+    .toggle-sidebar {
+        position: absolute;
+        top: 50%;
+        right: 300px;
+        transform: translateY(-50%);
+        z-index: 3;
+        background: white;
+        border: none;
+        border-radius: 4px 0 0 4px;
+        padding: 10px;
+        box-shadow: -2px 0 4px rgba(0,0,0,0.1);
+        cursor: pointer;
+        transition: right 0.3s ease;
+    }
+    .toggle-sidebar.sidebar-hidden {
+        right: 0;
+    }
+    .toggle-sidebar:hover {
+        background: #f5f5f5;
+    }
+    .zoom-level {
+        position: absolute;
+        bottom: 20px;
+        left: 20px;
+        background: white;
+        padding: 8px 12px;
+        border-radius: 4px;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+        z-index: 1000;
+        font-family: Arial, sans-serif;
+        font-size: 14px;
+    }
+    .zoom-level.high {
+        background: #4CAF50;
+        color: white;
+    }
+    .country-item {
+        margin-bottom: 15px;
+        padding-bottom: 15px;
+        border-bottom: 1px solid #eee;
+        cursor: pointer;
+    }
+    .country-item:last-child {
+        border-bottom: none;
+    }
+    .country-item:hover {
+        background-color: #f5f5f5;
+    }
+    .country-name {
+        font-weight: bold;
+        color: #333;
+        font-size: 16px;
+        margin-bottom: 5px;
+    }
+    .country-date {
+        color: #666;
+        font-size: 0.9em;
+        margin: 5px 0;
+    }
+    .country-cities {
+        color: #1982C4;
+        font-size: 0.9em;
+        margin: 5px 0;
+    }
+    .country-comment {
+        color: #555;
+        font-style: italic;
+        font-size: 0.9em;
+        margin-top: 5px;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="map-container sidebar-visible">
+    <div id="map"></div>
+    <div class="zoom-level" id="zoomLevel">Zoom: 2</div>
+</div>
+
+<button id="toggle-sidebar" class="toggle-sidebar" onclick="toggleSidebar()">
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M9 18l6-6-6-6" />
+    </svg>
+</button>
+
+<div id="sidebar" class="country-list visible">
+    <h3>Visited Countries</h3>
+    {% for country in countries %}
+    <div class="country-item" data-country-code="{{ country.code }}">
+        <div class="country-name">{{ country.name }}</div>
+        <div class="country-date">Visited: {{ country.visitDate }}</div>
+        {% if country.cities %}
+        <div class="country-cities">Cities: {{ country.cities|join(', ') }}</div>
+        {% endif %}
+        {% if country.comment %}
+        <div class="country-comment">{{ country.comment }}</div>
+        {% endif %}
+    </div>
+    {% endfor %}
+</div>
+
+<script>
+(function() {
+    const colors = {{ colors|tojson }}.colors;
+    let map;
+    let countryLayers = new Map();
+    let countyLayers = new Map();
+    let activeCountry = null;
+    let allCountriesGeoJson = null;  
+    const visitedCountriesData = {{ countries|tojson }};
+
+    async function loadAllGeoJson() {
+        try {
+            const response = await fetch('/static/data/geo-json/countries-all.geo.json');
+            allCountriesGeoJson = await response.json();  
+            return allCountriesGeoJson;
+        } catch (error) {
+            console.error('Error loading GeoJSON:', error);
+            return null;
+        }
+    }
+
+    async function loadUSState(stateCode) {
+        try {
+            const response = await fetch(`/static/data/geo-json/countries/USA/${stateCode}.geo.json`);
+            const data = await response.json();
+            return data;
+        } catch (error) {
+            console.error('Error loading USA state GeoJSON:', error);
+            return null;
+        }
+    }
+
+    function getCountryColor(countryCode) {
+        const country = visitedCountriesData.find(c => c.code === countryCode);
+        if (!country) return '#cccccc';
+        return colors[country.colorName] || '#cccccc';
+    }
+
+    async function highlightCountry(countryData) {
+        try {
+            countryLayers.forEach((layers, key) => {
+                layers.forEach(layer => map.data.remove(layer));
+                countryLayers.delete(key);
+            });
+
+            if (countryData.code === 'USA' && countryData.states) {
+                const bounds = new google.maps.LatLngBounds();
+                const layers = [];
+
+                for (const stateCode of countryData.states) {
+                    const stateGeoJson = await loadUSState(stateCode);
+                    if (stateGeoJson) {
+                        const features = map.data.addGeoJson(stateGeoJson);
+                        layers.push(...features);
+
+                        features.forEach(feature => {
+                            feature.getGeometry().forEachLatLng(latLng => bounds.extend(latLng));
+                        });
+                    }
+                }
+
+                countryLayers.set('USA', layers);
+                
+                if (layers.length > 0) {
+                    map.fitBounds(bounds, { padding: 50 });
+                }
+            } 
+            else if (allCountriesGeoJson) {
+                const countryFeatures = allCountriesGeoJson.features.filter(
+                    feature => feature.properties.ISO_A3 === countryData.code
+                );
+                
+                if (countryFeatures.length > 0) {
+                    const countryGeoJson = {
+                        type: 'FeatureCollection',
+                        features: countryFeatures
+                    };
+                    
+                    const features = map.data.addGeoJson(countryGeoJson);
+                    countryLayers.set(countryData.code, features);
+
+                    const bounds = new google.maps.LatLngBounds();
+                    features.forEach(feature => {
+                        feature.getGeometry().forEachLatLng(latLng => bounds.extend(latLng));
+                    });
+                    map.fitBounds(bounds, { padding: 50 });
+                }
+            }
+        } catch (error) {
+            console.error('Error in highlightCountry:', error);
+        }
+    }
+
+    async function initializeMap() {
+        const { Map } = await google.maps.importLibrary("maps");
+        
+        map = new Map(document.getElementById('map'), {
+            center: { lat: 30, lng: 0 },
+            zoom: 2,
+            mapTypeControl: false,
+            streetViewControl: false,
+            mapId: '{{ map_id }}',
+            noResolveGoogleMapsError: true,
+            gestureHandling: 'greedy'
+        });
+
+        map.addListener('zoom_changed', () => {
+            const zoom = map.getZoom();
+            updateZoomLevel(zoom);
+        });
+
+        await loadAllGeoJson();  
+
+        const countryItems = document.querySelectorAll('.country-item');
+        const countries = visitedCountriesData;
+
+        countryItems.forEach(item => {
+            item.addEventListener('click', async () => {
+                const countryCode = item.dataset.countryCode;
+                const countryData = countries.find(c => c.code === countryCode);
+                if (countryData) {
+                    await highlightCountry(countryData);
+                }
+            });
+        });
+
+        // Initially highlight all visited countries
+        for (const country of countries) {
+            if (country.code === 'USA') continue; // Skip USA initially to avoid overlap
+            const countryFeatures = allCountriesGeoJson.features.filter(
+                feature => feature.properties.ISO_A3 === country.code
+            );
+            
+            if (countryFeatures.length > 0) {
+                const countryGeoJson = {
+                    type: 'FeatureCollection',
+                    features: countryFeatures
+                };
+                
+                const features = map.data.addGeoJson(countryGeoJson);
+                countryLayers.set(country.code, features);
+
+                // Apply style to each feature
+                features.forEach(feature => {
+                    const color = colors[country.colorName] || '#cccccc';
+                    feature.setProperty('fillColor', color);
+                });
+            }
+        }
+
+        // Now load USA states
+        const usa = countries.find(c => c.code === 'USA');
+        if (usa && usa.states) {
+            const layers = [];
+            for (const stateCode of usa.states) {
+                const stateGeoJson = await loadUSState(stateCode);
+                if (stateGeoJson) {
+                    const features = map.data.addGeoJson(stateGeoJson);
+                    const usaColor = colors[usa.colorName] || '#cccccc';
+                    features.forEach(feature => {
+                        feature.setProperty('fillColor', usaColor);
+                    });
+                    layers.push(...features);
+                }
+            }
+            countryLayers.set('USA', layers);
+        }
+
+        // Set up the styling rules
+        const defaultStyles = {
+            fillOpacity: 0.4,
+            strokeColor: '#000000',
+            strokeWeight: 1,
+            strokeOpacity: 0.5
+        };
+
+        map.data.setStyle(feature => {
+            return {
+                ...defaultStyles,
+                fillColor: feature.getProperty('fillColor') || '#cccccc'
+            };
+        });
+
+        function updateZoomLevel(zoom) {
+            const zoomDisplay = document.getElementById('zoomLevel');
+            zoomDisplay.textContent = `Zoom: ${zoom}`;
+            if (zoom >= 7) {
+                zoomDisplay.classList.add('high');
+            } else {
+                zoomDisplay.classList.remove('high');
+            }
+        }
+
+        const toggleButton = document.getElementById('toggle-sidebar');
+        const sidebar = document.querySelector('.country-list');
+        const mapContainer = document.querySelector('.map-container');
+        const toggleIcon = toggleButton.querySelector('svg path');
+
+        toggleButton.addEventListener('click', () => {
+            sidebar.classList.toggle('visible');
+            mapContainer.classList.toggle('sidebar-visible');
+            toggleButton.classList.toggle('sidebar-hidden');
+            
+            if (sidebar.classList.contains('visible')) {
+                toggleIcon.setAttribute('d', 'M9 18l6-6-6-6');    
+            } else {
+                toggleIcon.setAttribute('d', 'M15 18l-6-6 6-6');  
+            }
+        });
+    }
+
+    window.addEventListener('load', () => {
+        initializeMap();
+    });
+})();
+</script>{% endblock %}

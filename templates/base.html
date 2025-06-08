@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Travel Maps{% endblock %}</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <style>
+        html, body {
+            height: 100%;
+            margin: 0;
+            padding: 0;
+            font-family: Arial, sans-serif;
+        }
+        body {
+            display: flex;
+            flex-direction: column;
+        }
+        .nav {
+            background-color: #333;
+            height: 60px;
+            z-index: 1000;
+            flex-shrink: 0;
+        }
+        .nav a {
+            float: left;
+            color: white;
+            text-align: center;
+            padding: 20px 16px;
+            text-decoration: none;
+            font-size: 17px;
+        }
+        .nav a:hover {
+            background-color: #ddd;
+            color: black;
+        }
+        .nav a.active {
+            background-color: #4CAF50;
+            color: white;
+        }
+        .container {
+            flex: 1;
+            position: relative;
+            min-height: 0;
+        }
+    </style>
+    {% block head %}{% endblock %}
+</head>
+<body>
+    <div class="nav">
+        <a href="/" {% if request.path == '/' %}class="active"{% endif %}>Home</a>
+        <a href="/visited-cities" {% if request.path == '/visited-cities' %}class="active"{% endif %}>Visited Cities</a>
+        <a href="/visited-countries" {% if request.path == '/visited-countries' %}class="active"{% endif %}>Visited Countries</a>
+    </div>
+
+    <div class="container">
+        {% block content %}{% endblock %}
+    </div>
+
+    <script>
+        // Add the toggle sidebar functionality
+        function toggleSidebar() {
+            const sidebar = document.getElementById('sidebar');
+            const mapContainer = document.querySelector('.map-container');
+            const toggleButton = document.getElementById('toggle-sidebar');
+            const toggleIcon = toggleButton.querySelector('path');
+            
+            sidebar.classList.toggle('visible');
+            mapContainer.classList.toggle('sidebar-visible');
+            
+            // Update the arrow direction
+            if (sidebar.classList.contains('visible')) {
+                toggleIcon.setAttribute('d', 'M9 18l6-6-6-6');    // Point right when sidebar is visible
+            } else {
+                toggleIcon.setAttribute('d', 'M15 18l-6-6 6-6');  // Point left when sidebar is hidden
+            }
+        }
+
+        // Add event listener to toggle button when DOM is loaded
+        document.addEventListener('DOMContentLoaded', function() {
+            const toggleButton = document.getElementById('toggle-sidebar');
+            if (toggleButton) {
+                toggleButton.addEventListener('click', toggleSidebar);
+            }
+        });
+
+        (g=>{var h,a,k,p="The Google Maps JavaScript API",c="google",l="importLibrary",q="__ib__",m=document,b=window;b=b[c]||(b[c]={});var d=b.maps||(b.maps={}),r=new Set,e=new URLSearchParams,u=()=>h||(h=new Promise(async(f,n)=>{await (a=m.createElement("script"));e.set("libraries",[...r]+"");for(k in g)e.set(k.replace(/[A-Z]/g,t=>"_"+t[0].toLowerCase()),g[k]);e.set("callback",c+".maps."+q);a.src=`https://maps.${c}apis.com/maps/api/js?`+e;d[q]=f;a.onerror=()=>h=n(Error(p+" could not load."));a.nonce=m.querySelector("script[nonce]")?.nonce||"";m.head.append(a)}));d[l]?console.warn(p+" only loads once. Ignoring:",g):d[l]=(f,...n)=>r.add(f)&&u().then(()=>d[l](f,...n))})({
+            key: "{{ api_key }}",
+            v: "beta"
+        });
+    </script>
+    {% block scripts %}{% endblock %}
+</body>
+</html>

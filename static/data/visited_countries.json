@@ -1,0 +1,63 @@
+{
+    "countries": [
+        {
+            "name": "France",
+            "code": "FRA",
+            "visitDate": "2024-12-25",
+            "comment": "Beautiful Christmas in Paris, amazing French cuisine and culture!",
+            "cities": ["Paris"],
+            "colorName": "coralRed"
+        },
+        {
+            "name": "United Kingdom",
+            "code": "GBR",
+            "visitDate": "2024-11-15",
+            "comment": "Explored the historic streets of London, enjoyed the British charm.",
+            "cities": ["London"],
+            "colorName": "turquoise"
+        },
+        {
+            "name": "Spain",
+            "code": "ESP",
+            "visitDate": "2024-08-20",
+            "comment": "Fantastic architecture, delicious tapas, and vibrant culture!",
+            "cities": ["Barcelona"],
+            "colorName": "oceanBlue"
+        },
+        {
+            "name": "United States",
+            "code": "USA",
+            "visitDate": "2025-01-05",
+            "comment": "Amazing New Year celebration in New York!",
+            "cities": ["New York"],
+            "states": ["NY"],
+            "counties": {
+                "NY": ["Albany", "Allegany", "Bronx", "Broome", "Cattaraugus", "Cayuga", "Chautauqua", "Chemung", "Chenango", "Clinton", "Columbia", "Cortland", "Delaware", "Dutchess", "Erie", "Essex", "Franklin", "Fulton", "Genesee", "Greene", "Hamilton", "Herkimer", "Jefferson", "Kings", "Lewis", "Livingston", "Madison", "Monroe", "Montgomery", "Nassau", "New York", "Niagara", "Oneida", "Onondaga", "Ontario", "Orange", "Orleans", "Oswego", "Otsego", "Putnam", "Queens", "Rensselaer", "Richmond", "Rockland", "St. Lawrence", "Saratoga", "Schenectady", "Schoharie", "Schuyler", "Seneca", "Steuben", "Suffolk", "Sullivan", "Tioga", "Tompkins", "Ulster", "Warren", "Washington", "Wayne", "Westchester", "Wyoming", "Yates"]
+            },
+            "colorName": "sageGreen",
+            "stateColorName": "sageGreen",
+            "countyColorName": "navyBlue"
+        },
+        {
+            "name": "Turkey",
+            "code": "TUR",
+            "visitDate": "2024-09-10",
+            "comment": "Rich history, incredible mosques, and unforgettable Turkish hospitality!",
+            "cities": ["Istanbul"],
+            "colorName": "warmYellow"
+        },
+        {
+            "name": "Japan",
+            "code": "JPN",
+            "visitDate": "2025-03-25",
+            "comment": "Incredible blend of tradition and modernity, amazing cherry blossom season!",
+            "cities": ["Tokyo"],
+            "colorName": "turquoise"
+        }
+    ],
+    "defaultStyles": {
+        "fillOpacity": 0.4,
+        "strokeWeight": 1,
+        "strokeColor": "#000000"
+    }
+}

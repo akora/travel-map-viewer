@@ -1,0 +1,62 @@
+{
+  "cities": [
+    {
+      "name": "Paris",
+      "country": "France",
+      "coordinates": {
+        "lat": 48.8566,
+        "lng": 2.3522
+      },
+      "visitDate": "2023-06-15",
+      "comment": "Visited the Eiffel Tower and Louvre",
+      "colorName": "coralRed"
+    },
+    {
+      "name": "Barcelona",
+      "country": "Spain",
+      "coordinates": {
+        "lat": 41.3874,
+        "lng": 2.1686
+      },
+      "visitDate": "2023-08-20",
+      "comment": "Amazing Sagrada Familia",
+      "colorName": "oceanBlue"
+    },
+    {
+      "name": "New York",
+      "country": "United States",
+      "coordinates": {
+        "lat": 40.7128,
+        "lng": -74.0060
+      },
+      "visitDate": "2025-01-05",
+      "comment": "New Year celebration in Times Square!",
+      "colorName": "sageGreen"
+    },
+    {
+      "name": "Istanbul",
+      "country": "Turkey",
+      "coordinates": {
+        "lat": 41.0082,
+        "lng": 28.9784
+      },
+      "visitDate": "2024-09-10",
+      "comment": "Beautiful mosques and amazing Turkish food!",
+      "colorName": "warmYellow"
+    },
+    {
+      "name": "Tokyo",
+      "country": "Japan",
+      "coordinates": {
+        "lat": 35.6762,
+        "lng": 139.6503
+      },
+      "visitDate": "2025-03-25",
+      "comment": "Cherry blossom season in Tokyo! Visited Shibuya and Senso-ji temple.",
+      "colorName": "turquoise"
+    }
+  ],
+  "defaultStyles": {
+    "scale": 0.7
+  }
+}

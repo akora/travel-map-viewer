@@ -1,0 +1,250 @@
+{% extends "base.html" %}
+
+{% block title %}Travel Maps - Visited Cities{% endblock %}
+
+{% block head %}
+<style>
+    .map-container {
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        z-index: 1;
+        transition: right 0.3s ease;
+    }
+    .map-container.sidebar-visible {
+        right: 300px;
+    }
+    #map {
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        width: 100%;
+        height: 100%;
+    }
+    .city-list {
+        position: absolute;
+        top: 0;
+        right: -300px;
+        width: 300px;
+        height: 100%;
+        overflow-y: auto;
+        background: white;
+        padding: 15px;
+        box-sizing: border-box;
+        box-shadow: -2px 0 4px rgba(0,0,0,0.1);
+        z-index: 2;
+        transition: right 0.3s ease;
+    }
+    .city-list.visible {
+        right: 0;
+    }
+    .city-item {
+        margin-bottom: 15px;
+        padding-bottom: 15px;
+        border-bottom: 1px solid #eee;
+    }
+    .city-item:last-child {
+        border-bottom: none;
+    }
+    .city-name {
+        font-weight: bold;
+        color: #333;
+    }
+    .city-date {
+        color: #666;
+        font-size: 0.9em;
+    }
+    .city-comment {
+        margin-top: 5px;
+        color: #555;
+    }
+    .toggle-sidebar {
+        position: absolute;
+        top: 50%;
+        right: 300px;
+        transform: translateY(-50%);
+        z-index: 3;
+        background: white;
+        border: none;
+        border-radius: 4px 0 0 4px;
+        padding: 10px;
+        box-shadow: -2px 0 4px rgba(0,0,0,0.1);
+        cursor: pointer;
+        transition: right 0.3s ease;
+    }
+    .toggle-sidebar.sidebar-hidden {
+        right: 0;
+    }
+    .toggle-sidebar:hover {
+        background: #f5f5f5;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="map-container sidebar-visible">
+    <div id="map"></div>
+</div>
+<button class="toggle-sidebar" onclick="toggleSidebar()">
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <path d="M9 18l6-6-6-6" />
+    </svg>
+</button>
+<div class="city-list visible">
+    <h3>Visited Cities</h3>
+    {% for city in cities %}
+    <div class="city-item">
+        <div class="city-name">{{ city.name }}, {{ city.country }}</div>
+        <div class="city-date">{{ city.visitDate }}</div>
+        {% if city.comment %}
+        <div class="city-comment">{{ city.comment }}</div>
+        {% endif %}
+    </div>
+    {% endfor %}
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+function toggleSidebar() {
+    const sidebar = document.querySelector('.city-list');
+    const mapContainer = document.querySelector('.map-container');
+    const toggleButton = document.querySelector('.toggle-sidebar');
+    
+    if (!sidebar || !mapContainer || !toggleButton) {
+        console.error('Required elements not found');
+        return;
+    }
+
+    const toggleIcon = toggleButton.querySelector('svg path');
+    
+    sidebar.classList.toggle('visible');
+    mapContainer.classList.toggle('sidebar-visible');
+    toggleButton.classList.toggle('sidebar-hidden');
+    
+    // Update the arrow direction only if the icon exists
+    if (toggleIcon) {
+        if (sidebar.classList.contains('visible')) {
+            toggleIcon.setAttribute('d', 'M9 18l6-6-6-6');    // Point right when sidebar is visible
+        } else {
+            toggleIcon.setAttribute('d', 'M15 18l-6-6 6-6');  // Point left when sidebar is hidden
+        }
+    }
+}
+
+async function initializeMap() {
+    const { Map } = await google.maps.importLibrary("maps");
+    const { AdvancedMarkerElement, PinElement } = await google.maps.importLibrary("marker");
+    
+    const map = new Map(document.getElementById('map'), {
+        center: { lat: 30, lng: 0 },
+        zoom: 2,
+        mapTypeControl: false,
+        streetViewControl: false,
+        mapId: '{{ map_id }}',
+        noResolveGoogleMapsError: true,
+        gestureHandling: 'greedy'
+    });
+
+    const markers = [];
+    const infoWindows = [];
+    if (!window.cityColors) {
+        window.cityColors = {{ colors|tojson }}.colors;
+    }
+    const colors = window.cityColors;
+
+    {% for city in cities %}
+    (function(cityData) {
+        const position = { 
+            lat: {{ city.coordinates.lat }}, 
+            lng: {{ city.coordinates.lng }}
+        };
+
+        const pin = new PinElement({
+            scale: 0.7,
+            background: colors[{{ city.colorName|tojson|safe }}],
+            glyphColor: '#FFFFFF'
+        });
+
+        const marker = new AdvancedMarkerElement({
+            map,
+            position,
+            title: '{{ city.name }}, {{ city.country }}',
+            content: pin.element,
+            zIndex: 1000
+        });
+
+        const infoContent = `
+            <div style="
+                padding: 15px;
+                max-width: 300px;
+                font-family: 'Roboto', Arial, sans-serif;
+                box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+                border-radius: 8px;
+                border: 1px solid #e0e0e0;
+            ">
+                <h3 style="
+                    margin: 0 0 10px 0;
+                    color: ${colors[{{ city.colorName|tojson|safe }}]};
+                    font-size: 18px;
+                    border-bottom: 2px solid ${colors[{{ city.colorName|tojson|safe }}]};
+                    padding-bottom: 8px;
+                ">{{ city.name }}, {{ city.country }}</h3>
+                <div style="
+                    display: flex;
+                    align-items: center;
+                    margin-bottom: 10px;
+                    color: #5f6368;
+                ">
+                    <svg style="width: 16px; height: 16px; margin-right: 8px;" viewBox="0 0 24 24" fill="currentColor">
+                        <path d="M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10 10-4.5 10-10S17.5 2 12 2zm0 18c-4.4 0-8-3.6-8-8s3.6-8 8-8 8 3.6 8 8-3.6 8-8 8zm.5-13H11v6l5.2 3.2.8-1.3-4.5-2.7V7z"/>
+                    </svg>
+                    <span>Visited: {{ city.visitDate }}</span>
+                </div>
+                {% if city.comment %}
+                <div style="
+                    background: #f8f9fa;
+                    padding: 10px;
+                    border-radius: 6px;
+                    margin-top: 10px;
+                    color: #3c4043;
+                    font-style: italic;
+                ">
+                    <svg style="width: 16px; height: 16px; margin-right: 8px; vertical-align: middle;" viewBox="0 0 24 24" fill="currentColor">
+                        <path d="M20 2H4c-1.1 0-1.99.9-1.99 2L2 22l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm-7 12h-2v-2h2v2zm0-4h-2V6h2v4z"/>
+                    </svg>
+                    <span>{{ city.comment }}</span>
+                </div>
+                {% endif %}
+            </div>
+        `;
+
+        const infoWindow = new google.maps.InfoWindow({
+            content: infoContent,
+            ariaLabel: '{{ city.name }}'
+        });
+
+        marker.addListener('gmp-click', () => {
+            infoWindows.forEach(iw => iw.close());
+            infoWindow.open(map, marker);
+        });
+
+        markers.push(marker);
+        infoWindows.push(infoWindow);
+    })({{ city|tojson }});
+    {% endfor %}
+
+    // Add click listener to close info windows when clicking on the map
+    map.addListener('click', () => {
+        infoWindows.forEach(iw => iw.close());
+    });
+}
+
+// Initialize the map when the page loads
+window.addEventListener('load', initializeMap);
+</script>
+{% endblock %}
